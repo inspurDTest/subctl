@@ -52,6 +52,8 @@ func Ensure(ctx context.Context, kubeClient kubernetes.Interface, namespace, ima
 		command = append(command, "-v=1")
 	}
 
+	Master := v1.Toleration{Key: "node-role.kubernetes.io/master", Operator: "Exists", Effect: "NoSchedule"}
+	Control := v1.Toleration{Key: "node-role.kubernetes.io/control-plane", Operator: "Exists", Effect: "NoSchedule"}
 	opDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
@@ -65,6 +67,7 @@ func Ensure(ctx context.Context, kubeClient kubernetes.Interface, namespace, ima
 					Labels: map[string]string{"name": operatorName},
 				},
 				Spec: v1.PodSpec{
+					Tolerations:        []v1.Toleration{Master, Control},
 					ServiceAccountName: operatorName,
 					Containers: []v1.Container{
 						{
@@ -79,10 +82,10 @@ func Ensure(ctx context.Context, kubeClient kubernetes.Interface, namespace, ima
 							Env: []v1.EnvVar{
 								{
 									Name: "WATCH_NAMESPACE", ValueFrom: &v1.EnvVarSource{
-										FieldRef: &v1.ObjectFieldSelector{
-											FieldPath: "metadata.namespace",
-										},
+									FieldRef: &v1.ObjectFieldSelector{
+										FieldPath: "metadata.namespace",
 									},
+								},
 								}, {
 									Name: "POD_NAME", ValueFrom: &v1.EnvVarSource{
 										FieldRef: &v1.ObjectFieldSelector{
